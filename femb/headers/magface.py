@@ -15,6 +15,13 @@ class MagFaceHeader(ArcFaceHeader):
 
         self.lambda_g = lambda_g
 
+        # zipida_add
+        self.linear = torch.nn.Linear(in_features, out_features)
+
+    # zipida_add
+    def normalize(self, x):
+        return torch.nn.functional.normalize(x, p=2, dim=1)  # L2 normalization
+
 
     def compute_m(self, a):
         return (self.u_m - self.l_m) / (self.u_a - self.l_a) * (a - self.l_a) + self.l_m

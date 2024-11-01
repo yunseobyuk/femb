@@ -14,9 +14,11 @@ def main():
     # preprocessing transform (assuming alignment and so on)
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Resize((112, 112)),
+        torchvision.transforms.Resize((224, 224)),
+        # torchvision.transforms.Resize((112, 112)),
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        # torchvision.transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         torchvision.transforms.RandomHorizontalFlip()
         ])
 
@@ -35,7 +37,7 @@ def main():
     print(f"Val Dataset - #images: {len(val_dataset)} - #ids: {val_n_classes}")
 
     # build the backbone embedding network
-    backbone = build_backbone(backbone="iresnet18", embed_dim=embed_dim)
+    backbone = build_backbone(backbone="mobilenet_v2", embed_dim=embed_dim)
 
     # create one of the face recognition headers
     #header = LinearHeader(in_features=embed_dim, out_features=train_n_classes)

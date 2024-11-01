@@ -53,12 +53,12 @@ def build_backbone(backbone='iresnet50', embed_dim=512, pretrained=False):
     if backbone == 'mobilenet_v2':
         backbone = torchvision.models.mobilenet_v2(pretrained=pretrained)
 
-        classifier = [
-         torch.nn.Dropout(p=0.2, inplace=False),
-         torch.nn.Linear(in_features=1280, out_features=embed_dim, bias=True)
-        ]
-
-        backbone = torch.nn.Sequential(*(list(backbone.children())[:-1]) + classifier)
+        classifier = torch.nn.Sequential(
+            torch.nn.Dropout(p=0.2, inplace=False),
+            torch.nn.Linear(in_features=1280, out_features=embed_dim, bias=True)
+)
+        backbone.classifier = classifier
+        # backbone = torch.nn.Sequential(*(list(backbone.children())[:-1]) + classifier)
         return backbone
 
 
