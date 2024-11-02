@@ -62,6 +62,7 @@ class FaceEmbeddingModel:
                 logging.info(evaluator.__class__.__name__ + ': ' + str(stats))
                 writer.add_scalars(evaluator.__class__.__name__, stats, global_step=global_step)
                 writer.add_embedding(features, metadata=labels, label_img=thumbnails, global_step=global_step)
+
         else:
             def evaluate(global_step):
                 features, labels = self.encode_dataset(val_dataset, batch_size=batch_size, device=device, return_labels=True)
@@ -76,12 +77,21 @@ class FaceEmbeddingModel:
 
         global_step = 0
         epoch = 0
+
         while(True):
             logging.info(f"Epoch {epoch}:")
             train_losses = np.empty(len(train_dataloader))
 
             self.header.train()
             self.backbone.train()
+            # checkpoint 추가
+            if os.path.exists('checkpoint/checkpoint.pt'):
+                loaded_checkpoint = torch.load('checkpoint/checkpoint.pt')
+                start_epoch = loaded_checkpoint['epoch'] + 1
+                print(f'checkpoint_{start_epoch} load complete!')
+                self.header.load_state_dict(loaded_checkpoint['header_state_dict'])
+                optimizer.load_state_dict(loaded_checkpoint['optimizer_state_dict'])
+
 
             pbar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
             for step, batch in pbar:
@@ -93,7 +103,10 @@ class FaceEmbeddingModel:
                 inputs = batch[0].to(device)
                 labels = batch[1].to(device).long().view(-1)
 
+
+
                 features = self.backbone(inputs)
+                # (batch, channel)
                 features = features.view(features.shape[0], features.shape[1])
 
                 outputs = self.header(features, labels)
@@ -118,11 +131,29 @@ class FaceEmbeddingModel:
                 if max_training_steps > 0 and global_step >= max_training_steps:
                     return
 
+
                 if lr_global_step_scheduler is not None:
                     lr_global_step_scheduler.step()
 
+
             if evaluator is not None and max_epochs > 0 and evaluation_steps == 0:
-                evaluate(global_step)
+                stats = evaluate(global_step)
+
+            # torch.save 추가
+            checkpoint = {
+                'backbone_state_dict': self.backbone.state_dict(),
+                'header_state_dict': self.header.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_losses' : train_losses,
+                'epoch': epoch
+            }
+            torch.save(checkpoint, f"{training_path}/epoch_{epoch}.pt")
+            # checkpoint 활용
+            checkpoint_path = 'checkpoint'
+            if not os.path.exists(checkpoint_path):
+                os.makedirs(checkpoint_path)
+            torch.save(checkpoint, f"{checkpoint_path}/checkpoint.pt")
+            print(f'checkpoing_{epoch} save complete!')
 
             epoch += 1
             if max_epochs > 0 and epoch >= max_epochs:
